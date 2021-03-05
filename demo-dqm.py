@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import imageio
+import itertools
 import os
 import numpy as np
 import networkx as nx
@@ -131,34 +132,27 @@ def get_layout_from_sample(ss, city_names, p):
 
     return hubs, legs, valid
 
-def get_cost(index, ss, a, dist_mat, cost_mat, cost_dict):
+def get_cost(index, ss, a, dist_mat, cost_mat):
 
     cost = 0
     for i in range(n):
         for j in range(i+1, n):
             cost += dist_mat[i][j]*(cost_mat[i][ss[i]] + cost_mat[j][ss[j]] + a*cost_mat[ss[i]][ss[j]])
 
-    cost_dict[index] = cost
-
-    return cost_dict
+    return cost
 
 def visualize_results(dist_mat, city_names, hubs, legs, city_lats, city_longs, cost, filenames=None, counter=0):
 
     if filenames is None:
         filenames = []
     
-    positions = {}
-    for i in range(len(city_names)):
-        positions[city_names[i]] = [-city_longs[i], city_lats[i]]
+    num_cities = len(city_names)
 
-    hub_cxn = []
-    for i in range(len(hubs)):
-        for j in range(i+1, len(hubs)):
-            hub_cxn.append((hubs[i],hubs[j]))
+    positions = {city_names[i]: [-city_longs[i], city_lats[i]] for i in range(num_cities)}
+
+    hub_cxn = list(itertools.combinations(hubs, 2))
 
     H = nx.Graph()
-
-    num_cities = len(city_names)
     H.add_nodes_from(city_names)
     H.add_edges_from(legs)
 
@@ -205,10 +199,8 @@ if __name__ == '__main__':
     print("\nInterpreting solutions...\n")
 
     ss = list(sampleset.data(['sample']))
-    cost_dict = defaultdict(float)
 
-    for index in range(len(ss)):
-        cost_dict = get_cost(index, ss[index].sample, a, W, C, cost_dict)
+    cost_dict = {index: get_cost(index, ss[index].sample, a, W, C) for index in range(len(ss))}
 
     ordered_samples = dict(sorted(cost_dict.items(), key=lambda item: item[1], reverse=True))
     filenames = []
