@@ -14,13 +14,19 @@
 
 import imageio
 import itertools
+import matplotlib
 import os
 import numpy as np
 import networkx as nx
-import matplotlib.pyplot as plt
 from dimod import DiscreteQuadraticModel
 from dwave.system import LeapHybridDQMSampler
 from collections import defaultdict
+
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    matplotlib.use("agg")
+    import matplotlib.pyplot as plt
 
 def read_inputs(flow_file, cost_file, verbose=True):
     # Import the flow and cost information for 25 cities
