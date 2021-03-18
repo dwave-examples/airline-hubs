@@ -205,6 +205,7 @@ if __name__ == '__main__':
     ordered_samples = dict(sorted(cost_dict.items(), key=lambda item: item[1], reverse=True))
     filenames = []
     counter = 0
+    print("\nGenerating images...\n")
     for key, val in ordered_samples.items():
         hubs, legs, valid = get_layout_from_sample(ss[key].sample, city_names, p)
         if counter > 0:
