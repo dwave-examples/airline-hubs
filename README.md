@@ -12,7 +12,7 @@ transporation for all city pairs in demand by passengers.
 
 To run the demo, type
 
-`python demo-dqm.py`
+`python demo.py`
 
 A GIF will be produced that illustrates the feasible results found by the
 hybrid solver, as shown below.
