@@ -22,10 +22,11 @@ from dimod import DiscreteQuadraticModel
 from dwave.system import LeapHybridDQMSampler
 from collections import defaultdict
 
-def read_inputs(flow_file, cost_file):
+def read_inputs(flow_file, cost_file, verbose=True):
     # Import the flow and cost information for 25 cities
 
-    print("\nReading in flow/cost info...\n")
+    if verbose:
+        print("\nReading in flow/cost info...\n")
 
     W = np.genfromtxt(flow_file, delimiter=',')
     W = W/np.sum(np.sum(W))
@@ -34,7 +35,7 @@ def read_inputs(flow_file, cost_file):
 
     return W, C, n
 
-def read_city_info(file_name):
+def read_city_info(file_name, verbose=True):
 
     file1 = open(file_name, 'r') 
     Lines = file1.readlines()
@@ -50,13 +51,15 @@ def read_city_info(file_name):
         city_longs.append(float(info[3].strip()))
 
     file1.close() 
-    print("\nProcessed", info[0], "city locations.\n")
+    if verbose:
+        print("\nProcessed", info[0], "city locations.\n")
 
     return city_names, city_lats, city_longs
 
-def build_graph(dist_mat, city_names):
+def build_graph(dist_mat, city_names, verbose=True):
 
-    print("\nConstructing map...\n")
+    if verbose:
+        print("\nConstructing map...\n")
 
     G = nx.Graph()
 
@@ -77,9 +80,10 @@ def draw_graph(G, city_names, city_lats, city_longs):
     plt.savefig('complete_network.png')
     plt.close()
 
-def build_dqm(W, C, n, p, a):
+def build_dqm(W, C, n, p, a, verbose=True):
 
-    print("\nBuilding DQM...\n")
+    if verbose:
+        print("\nBuilding DQM...\n")
 
     dqm = DiscreteQuadraticModel()
     for i in range(n):
