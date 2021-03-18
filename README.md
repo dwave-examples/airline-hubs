@@ -17,7 +17,7 @@ To run the demo, type
 A GIF will be produced that illustrates the feasible results found by the
 hybrid solver, as shown below.
 
-![output](airline-hubs.gif)
+![output](readme_imgs/airline-hubs.gif)
 
 ## Formulating the Problem
 
