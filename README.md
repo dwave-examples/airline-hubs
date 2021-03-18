@@ -30,3 +30,7 @@ We have several additional constraints that must be satisfied in order for a rou
  3. Only p hubs total.
 
 The first two constraints ensure that any city-city route that a passenger travels has at most two legs, or one connection.
+
+## References
+
+O'Kelly, Morton E. "A quadratic integer program for the location of interacting hub facilities." European journal of operational research 32.3 (1987): 393-404.
