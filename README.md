@@ -1,3 +1,7 @@
+[![Linux/Mac/Windows build status](
+  https://circleci.com/gh/dwave-examples/airline-hubs.svg?style=svg)](
+  https://circleci.com/gh/dwave-examples/airline-hubs)
+
 # Airline Hub Locations
 
 A challenging optimization problem in the airline industry is determining which
