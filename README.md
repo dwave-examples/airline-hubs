@@ -10,7 +10,7 @@ formulate this problem as a discrete quadratic model and use a hybrid solver to
 optimize and find feasible solutions.
 
 The goal for this problem is to minimize costs for the airline, while providing
-transporation for all city pairs in demand by passengers.
+transportation for all city pairs in demand by passengers.
 
 ## Running the Demo
 
