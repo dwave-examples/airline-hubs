@@ -66,13 +66,13 @@ def read_city_info(file_name, verbose=True):
     """
 
     file1 = open(file_name, 'r') 
-    Lines = file1.readlines()
+    lines = file1.readlines()
     city_names = []
     city_lats = []
     city_longs = []
 
     # Strips the newline character 
-    for line in Lines: 
+    for line in lines: 
         info = line.split(",")
         city_names.append(info[1])
         city_lats.append(float(info[2]))
@@ -125,7 +125,7 @@ def draw_graph(G, city_names, city_lats, city_longs):
     for i in range(len(city_names)):
         positions[city_names[i]] = [-city_longs[i], city_lats[i]]
 
-    nx.draw(G, pos = positions, with_labels=True)
+    nx.draw(G, pos=positions, with_labels=True)
     plt.savefig('complete_network.png')
     plt.close()
 
@@ -231,7 +231,7 @@ def get_cost(ss, a, dist_mat, C):
 
     return cost
 
-def visualize_results(dist_mat, city_names, hubs, legs, city_lats, city_longs, cost, filenames=None, counter=0):
+def visualize_results(dist_mat, city_names, hubs, legs, city_lats, city_longs, cost, filenames=None, counter=0, verbose=True):
     """Visualizes a given route layout and saves the file as a .png.
 
     Args:
@@ -244,6 +244,7 @@ def visualize_results(dist_mat, city_names, hubs, legs, city_lats, city_longs, c
         - cost: Cost of provided route network.
         - filenames: List of image filenames produced so far.
         - counter: Counter for image filename.
+        - verbose: Print results to command-line.
 
     Returns:
         - filenames: List of image filenames produced so far with new image filename appended.
@@ -283,6 +284,9 @@ def visualize_results(dist_mat, city_names, hubs, legs, city_lats, city_longs, c
     plt.savefig(filename)
     plt.close()
 
+    if verbose:
+        print("Hubs:", hubs, "\tCost:", cost)
+
     return filenames
 
 if __name__ == '__main__':
@@ -312,6 +316,8 @@ if __name__ == '__main__':
     filenames = []
     counter = 0
     print("\nGenerating images...\n")
+    print("\nFeasible solutions found:")
+    print("---------------------------\n")
     for key, val in ordered_samples.items():
         hubs, legs, valid = get_layout_from_sample(ss[key].sample, city_names, p)
         if counter > 0:
@@ -326,10 +332,10 @@ if __name__ == '__main__':
     print("\nBuilding output GIF...\n")
     with imageio.get_writer('airline-hubs.gif', mode='I') as writer:
         for filename in filenames:
-            for i in range(5):
+            for i in range(15):
                 image = imageio.imread(filename)
                 writer.append_data(image)
-        for i in range(20):
+        for i in range(40):
             image = imageio.imread(filenames[-1])
             writer.append_data(image)
             
