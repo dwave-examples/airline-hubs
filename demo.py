@@ -29,7 +29,18 @@ except ImportError:
     import matplotlib.pyplot as plt
 
 def read_inputs(flow_file, cost_file, verbose=True):
-    # Import the flow and cost information for 25 cities
+    """Reads in scenario information on passenger flow and route cost.
+
+    Args:
+        - flow_file: Text file. Number of passengers that desire to travel from city i to city j.
+        - cost_file: Text file. Cost to airline to operate leg from city i to city j.
+        - verbose: Print to command-line for user.
+
+    Returns:
+        - W: Numpy matrix. Represents passenger demand. Normalized with total demand equal to 1.
+        - C: Numpy matrix. Represents airline leg cost.
+        - n: Int. Number of cities in play.
+    """
 
     if verbose:
         print("\nReading in flow/cost info...\n")
@@ -42,6 +53,17 @@ def read_inputs(flow_file, cost_file, verbose=True):
     return W, C, n
 
 def read_city_info(file_name, verbose=True):
+    """Reads in scenario information on airports and lat/long coordinates.
+
+    Args:
+        - file_name: Text file. Includes airport code and lat/long coordinates.
+        - verbose: Print to command-line for user.
+
+    Returns:
+        - city_names: List of all airport codes, in order.
+        - city_lats: List of all airport lat coordinates, in order.
+        - city_longs: List of all airport long coordinates, in order.
+    """
 
     file1 = open(file_name, 'r') 
     Lines = file1.readlines()
@@ -63,6 +85,16 @@ def read_city_info(file_name, verbose=True):
     return city_names, city_lats, city_longs
 
 def build_graph(dist_mat, city_names, verbose=True):
+    """Builds weighted graph based on cities and distances.
+
+    Args:
+        - dist_mat: Numpy matrix providing distance between cities i and j.
+        - city_names: List of all airport codes.
+        - verbose: Print to command-line for user.
+
+    Returns:
+        - G: NetworkX weighted graph of cities with distances on edges.
+    """
 
     if verbose:
         print("\nConstructing map...\n")
@@ -77,6 +109,17 @@ def build_graph(dist_mat, city_names, verbose=True):
     return G
 
 def draw_graph(G, city_names, city_lats, city_longs):
+    """Visualizes the city graph and saves as file.
+
+    Args:
+        - G: NetworkX weighted graph of cities with distances on edges.
+        - city_names: List of all airport codes.
+        - city_lats: List of all airport lat coordinates, in order.
+        - city_longs: List of all airport long coordinates, in order.
+
+    Returns:
+        None. Saves visual as 'complete_network.png'.
+    """
     
     positions = {}
     for i in range(len(city_names)):
@@ -87,15 +130,29 @@ def draw_graph(G, city_names, city_lats, city_longs):
     plt.close()
 
 def build_dqm(W, C, n, p, a, verbose=True):
+    """Builds discrete quadratic model representing the optimization problem.
+
+    Args:
+        - W: Numpy matrix. Represents passenger demand. Normalized with total demand equal to 1.
+        - C: Numpy matrix. Represents airline leg cost.
+        - n: Int. Number of cities in play.
+        - p: Int. Number of hubs airports allowed.
+        - a: Float in [0.0, 1.0]. Discount allowed for hub-hub legs.
+        - verbose: Print to command-line for user.
+
+    Returns:
+        - dqm: DiscreteQuadraticModel representing the optimization problem.
+    """
 
     if verbose:
         print("\nBuilding DQM...\n")
 
+    # Initialize DQM object.
     dqm = DiscreteQuadraticModel()
     for i in range(n):
         dqm.add_variable(n, label=i)
 
-    # add objective
+    # Objective: Minimize cost.
     for i in range(n):
         for j in range(n):
             for k in range(n):
@@ -107,7 +164,7 @@ def build_dqm(W, C, n, p, a, verbose=True):
                     if i != j:
                         dqm.set_quadratic_case(i, k, j, m, a*C[k][m]*W[i][j])
 
-    # constraint 1
+    # Constraint: Every leg must connect to a hub.
     gamma1 = 30
     for i in range(n):
         for j in range(n):
@@ -115,16 +172,28 @@ def build_dqm(W, C, n, p, a, verbose=True):
             if i != j:
                 dqm.set_quadratic_case(i, j, j, j, dqm.get_quadratic_case(i, j, j, j) - 1*gamma1)
 
-    # constraint 3
-    gamma3 = 20
+    # Constraint: Exactly p hubs required.
+    gamma2 = 20
     for j in range(n):
-        dqm.set_linear_case(j, j, dqm.get_linear_case(j,j) + (1-2*p)*gamma3)
+        dqm.set_linear_case(j, j, dqm.get_linear_case(j,j) + (1-2*p)*gamma2)
         for k in range(j+1,n):
-            dqm.set_quadratic_case(j, j, k, k, dqm.get_quadratic_case(j, j, k, k) + 2*gamma3)
+            dqm.set_quadratic_case(j, j, k, k, dqm.get_quadratic_case(j, j, k, k) + 2*gamma2)
 
     return dqm
 
 def get_layout_from_sample(ss, city_names, p):
+    """Determines the airline route network from a sampleset.
+
+    Args:
+        - ss: Sampleset dictionary. One solution returned from the hybrid solver.
+        - city_names: List of all airport codes, in order.
+        - p: Int. Number of hubs airports allowed.
+
+    Returns:
+        - hubs: List of airports designated as hubs.
+        - legs: List of airline city-city route legs that will be operated.
+        - valid: Boolean designated whether provided solution satisfies the constraints.
+    """
 
     hubs = []
     legs = []
@@ -142,16 +211,43 @@ def get_layout_from_sample(ss, city_names, p):
 
     return hubs, legs, valid
 
-def get_cost(index, ss, a, dist_mat, cost_mat):
+def get_cost(ss, a, dist_mat, C):
+    """Determines the cost of an airline route network from a sampleset.
+
+    Args:
+        - ss: Sampleset dictionary. One solution returned from the hybrid solver.
+        - a: Float in [0.0, 1.0]. Discount allowed for hub-hub legs.
+        - dist_mat: Numpy matrix providing distance between cities i and j.
+        - C: Numpy matrix. Represents airline leg cost.
+
+    Returns:
+        - cost: Cost of provided route network.
+    """
 
     cost = 0
     for i in range(n):
         for j in range(i+1, n):
-            cost += dist_mat[i][j]*(cost_mat[i][ss[i]] + cost_mat[j][ss[j]] + a*cost_mat[ss[i]][ss[j]])
+            cost += dist_mat[i][j]*(C[i][ss[i]] + C[j][ss[j]] + a*C[ss[i]][ss[j]])
 
     return cost
 
 def visualize_results(dist_mat, city_names, hubs, legs, city_lats, city_longs, cost, filenames=None, counter=0):
+    """Visualizes a given route layout and saves the file as a .png.
+
+    Args:
+        - dist_mat: Numpy matrix providing distance between cities i and j.
+        - city_names: List of all airport codes.
+        - hubs: List of airports designated as hubs.
+        - legs: List of airline city-city route legs that will be operated.
+        - city_lats: List of all airport lat coordinates, in order.
+        - city_longs: List of all airport long coordinates, in order.
+        - cost: Cost of provided route network.
+        - filenames: List of image filenames produced so far.
+        - counter: Counter for image filename.
+
+    Returns:
+        - filenames: List of image filenames produced so far with new image filename appended.
+    """
 
     if filenames is None:
         filenames = []
@@ -210,7 +306,7 @@ if __name__ == '__main__':
 
     ss = list(sampleset.data(['sample']))
 
-    cost_dict = {index: get_cost(index, ss[index].sample, a, W, C) for index in range(len(ss))}
+    cost_dict = {index: get_cost(ss[index].sample, a, W, C) for index in range(len(ss))}
 
     ordered_samples = dict(sorted(cost_dict.items(), key=lambda item: item[1], reverse=True))
     filenames = []
