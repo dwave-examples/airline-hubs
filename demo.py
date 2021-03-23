@@ -12,15 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import imageio
-import itertools
-import matplotlib
 import os
+import itertools
+from collections import defaultdict
+
+import imageio
+import matplotlib
 import numpy as np
 import networkx as nx
 from dimod import DiscreteQuadraticModel
 from dwave.system import LeapHybridDQMSampler
-from collections import defaultdict
 
 try:
     import matplotlib.pyplot as plt

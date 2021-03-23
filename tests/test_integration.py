@@ -16,8 +16,10 @@ import os
 import subprocess
 import sys
 import unittest
-import demo
+
 from dwave.system import LeapHybridDQMSampler
+
+import demo
 
 project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
