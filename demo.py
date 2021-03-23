@@ -331,13 +331,22 @@ if __name__ == '__main__':
 
     # build gif
     print("\nBuilding output GIF...\n")
+
+    img = plt.imread(filenames[-1])
+    fig = plt.figure(dpi=100, tight_layout=True, frameon=False, figsize=(img.shape[1]/100.,img.shape[0]/100.)) 
+    fig.figimage(img, cmap=plt.cm.binary)
+    fig.suptitle('Best Solution Found', x=0.5, y=0.08, fontsize=16)
+    plt.savefig("best_soln_found.png")
+    plt.close(fig)
+
     with imageio.get_writer('airline-hubs.gif', mode='I') as writer:
         for filename in filenames:
             for i in range(15):
                 image = imageio.imread(filename)
                 writer.append_data(image)
         for i in range(40):
-            image = imageio.imread(filenames[-1])
+            # image = imageio.imread(filenames[-1])
+            image = imageio.imread("best_soln_found.png")
             writer.append_data(image)
             
     # Remove files
