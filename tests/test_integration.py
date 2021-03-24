@@ -45,8 +45,8 @@ class TestDemo(unittest.TestCase):
     def test_feasible_solns(self):
         """Test that filtered solutions are all feasible"""
 
-        W, C, n = demo.read_inputs(flow_file='flow.csv', cost_file='cost.csv', verbose=False)
-        city_names, _, _ = demo.read_city_info('city-data.txt', verbose=False)
+        W, C, n = demo.read_inputs(flow_file='tests/test_flow.csv', cost_file='tests/test_cost.csv', verbose=False)
+        city_names, _, _ = demo.read_city_info('tests/test_city_data.txt', verbose=False)
         p = 3 
         a = 0.4 
 
@@ -63,7 +63,7 @@ class TestDemo(unittest.TestCase):
                 self.assertEqual(len(hubs), p)
 
                 for pair in legs:
-                    overlap = list(set(pair).intersection(hubs))
+                    overlap = set(pair).intersection(hubs)
 
                     self.assertGreater(len(overlap), 0)
 
