@@ -33,8 +33,8 @@ def read_inputs(flow_file, cost_file, verbose=True):
     """Reads in scenario information on passenger flow and route cost.
 
     Args:
-        - flow_file: Text file. Number of passengers that desire to travel from city i to city j.
-        - cost_file: Text file. Cost to airline to operate leg from city i to city j.
+        - flow_file: CSV file. Number of passengers that desire to travel from city i to city j.
+        - cost_file: CSV file. Cost for airline to operate leg from city i to city j.
         - verbose: Print to command-line for user.
 
     Returns:
@@ -61,9 +61,12 @@ def read_city_info(file_name, verbose=True):
         - verbose: Print to command-line for user.
 
     Returns:
-        - city_names: List of all airport codes, in order.
-        - city_lats: List of all airport lat coordinates, in order.
-        - city_longs: List of all airport long coordinates, in order.
+        - city_names: List of all airport codes.
+        - city_lats: List of all airport lat coordinates.
+        - city_longs: List of all airport long coordinates.
+
+    All returned lists have airports in the same order, i.e. airport city_names[i]
+    has latitude city_lats[i] and longitude city_longs[i].
     """
 
     file1 = open(file_name, 'r') 
@@ -158,9 +161,7 @@ def build_dqm(W, C, n, p, a, verbose=True):
         for j in range(n):
             for k in range(n):
                 dqm.set_linear_case(i, k, C[i][k]*W[i][j])
-            for m in range(n):
-                dqm.set_linear_case(j, m, dqm.get_linear_case(j,m)+C[j][m]*W[i][j])
-            for k in range(n):
+                dqm.set_linear_case(j, k, dqm.get_linear_case(j,k)+C[j][k]*W[i][j])     
                 for m in range(n):
                     if i != j:
                         dqm.set_quadratic_case(i, k, j, m, a*C[k][m]*W[i][j])
@@ -269,9 +270,9 @@ def visualize_results(dist_mat, city_names, hubs, legs, city_lats, city_longs, c
 
     plt.figure(figsize=(10,5))
     ax = plt.gca()
-    ax.set_title(f'Cost: {cost}')
+    ax.set_title("Cost: {}".format(cost))
 
-    nx.draw_networkx_nodes(H, node_size=[v * 10 for v in d.values()], pos = positions, edgecolors='k', ax=ax)
+    nx.draw_networkx_nodes(H, node_size=[v * 10 for v in d.values()], pos=positions, edgecolors='k', ax=ax)
     nx.draw_networkx_nodes(hubs, node_size = [v * 100 for v in hub_degrees.values()], pos=positions, node_color='r', edgecolors='k', ax=ax)
     nx.draw_networkx_edges(H, pos=positions, edgelist=H.edges(), width=1.0, ax=ax)
     nx.draw_networkx_edges(H, pos=positions, edgelist=hub_cxn, width=3.0, ax=ax)
