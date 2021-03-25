@@ -56,16 +56,22 @@ class TestDemo(unittest.TestCase):
 
         ss = list(sampleset.data(['sample']))
 
+        found_valid_soln = False
         for line in ss:
             hubs, legs, valid = demo.get_layout_from_sample(line.sample, city_names, p)
 
             if valid:
+
+                found_valid_soln = True
+
                 self.assertEqual(len(hubs), p)
 
                 for pair in legs:
                     overlap = set(pair).intersection(hubs)
 
                     self.assertGreater(len(overlap), 0)
+
+        self.assertTrue(found_valid_soln)
 
 if __name__ == '__main__':
     unittest.main()

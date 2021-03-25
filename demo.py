@@ -213,7 +213,7 @@ def get_layout_from_sample(ss, city_names, p):
 
     return hubs, legs, valid
 
-def get_cost(ss, a, dist_mat, C):
+def get_cost(ss, a, dist_mat, C, n):
     """Determines the cost of an airline route network from a sampleset.
 
     Args:
@@ -273,7 +273,7 @@ def visualize_results(dist_mat, city_names, hubs, legs, city_lats, city_longs, c
     ax.set_title("Cost: {}".format(cost))
 
     nx.draw_networkx_nodes(H, node_size=[v * 10 for v in d.values()], pos=positions, edgecolors='k', ax=ax)
-    nx.draw_networkx_nodes(hubs, node_size = [v * 100 for v in hub_degrees.values()], pos=positions, node_color='r', edgecolors='k', ax=ax)
+    nx.draw_networkx_nodes(hubs, node_size=[v * 100 for v in hub_degrees.values()], pos=positions, node_color='r', edgecolors='k', ax=ax)
     nx.draw_networkx_edges(H, pos=positions, edgelist=H.edges(), width=1.0, ax=ax)
     nx.draw_networkx_edges(H, pos=positions, edgelist=hub_cxn, width=3.0, ax=ax)
 
@@ -293,7 +293,7 @@ def visualize_results(dist_mat, city_names, hubs, legs, city_lats, city_longs, c
 
 if __name__ == '__main__':
 
-    W, C, n = read_inputs(flow_file='flow.csv', cost_file='cost.csv')
+    passenger_demand, leg_cost, num_cities = read_inputs(flow_file='flow.csv', cost_file='cost.csv')
     city_names, city_lats, city_longs = read_city_info('city-data.txt')
     p = 3 # number of hubs
     a = 0.4 # discount for hub-hub routes
@@ -302,7 +302,7 @@ if __name__ == '__main__':
     # G = build_graph(W, city_names)
     # draw_graph(G, city_names, city_lats, city_longs)
 
-    dqm = build_dqm(W, C, n, p, a)
+    dqm = build_dqm(passenger_demand, leg_cost, num_cities, p, a)
 
     print("\nRunning hybrid solver...\n")
     sampler = LeapHybridDQMSampler()
@@ -312,41 +312,47 @@ if __name__ == '__main__':
 
     ss = list(sampleset.data(['sample']))
 
-    cost_dict = {index: get_cost(ss[index].sample, a, W, C) for index in range(len(ss))}
+    cost_dict = {index: get_cost(ss[index].sample, a, passenger_demand, leg_cost, num_cities) for index in range(len(ss))}
 
     ordered_samples = dict(sorted(cost_dict.items(), key=lambda item: item[1], reverse=True))
     filenames = []
     counter = 0
-    print("\nGenerating images...\n")
+    print("\nGenerating images for output GIF...\n")
     print("\nFeasible solutions found:")
     print("---------------------------\n")
+    output_string = []
     for key, val in ordered_samples.items():
         hubs, legs, valid = get_layout_from_sample(ss[key].sample, city_names, p)
+        
         if counter > 0:
             if prev_val == val:
                 valid = False
         if valid:
-            filenames = visualize_results(W, city_names, hubs, legs, city_lats, city_longs, cost_dict[key], filenames, counter)
+            filenames = visualize_results(passenger_demand, city_names, hubs, legs, city_lats, city_longs, cost_dict[key], filenames, counter, verbose=False)
+            output_string.append("Hubs: "+str(hubs)+"\tCost: "+str(cost_dict[key]))
             counter += 1
         prev_val = val
 
-    # build gif
-    print("\nBuilding output GIF...\n")
+    output_string.reverse()
+    for line in output_string:
+        print(line)
 
+    # build gif
+    print("\nSaving best solution to best_soln_found.png...\n")
     img = plt.imread(filenames[-1])
     fig = plt.figure(dpi=100, tight_layout=True, frameon=False, figsize=(img.shape[1]/100.,img.shape[0]/100.)) 
     fig.figimage(img, cmap=plt.cm.binary)
     fig.suptitle('Best Solution Found', x=0.5, y=0.08, fontsize=16)
     plt.savefig("best_soln_found.png")
     plt.close(fig)
-
+    
+    print("\nBuilding output GIF (airline-hubs.gif)...\n")
     with imageio.get_writer('airline-hubs.gif', mode='I') as writer:
         for filename in filenames:
             for i in range(15):
                 image = imageio.imread(filename)
                 writer.append_data(image)
         for i in range(40):
-            # image = imageio.imread(filenames[-1])
             image = imageio.imread("best_soln_found.png")
             writer.append_data(image)
             

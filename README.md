@@ -18,6 +18,11 @@ To run the demo, type
 
 `python demo.py`
 
+The program will select 3 hubs out of a list of 25 different airports. The
+information in the files `flow.csv` and `cost.csv` is used to determine the
+optimal selection of hub airports, based on passenger flow and airline costs
+found in these files.
+
 A GIF will be produced that illustrates the feasible results found by the
 hybrid solver, as shown below.
 
