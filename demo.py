@@ -118,8 +118,11 @@ def draw_graph(G, city_names, city_lats, city_longs):
     Args:
         - G: NetworkX weighted graph of cities with distances on edges.
         - city_names: List of all airport codes.
-        - city_lats: List of all airport lat coordinates, in order.
-        - city_longs: List of all airport long coordinates, in order.
+        - city_lats: List of all airport lat coordinates.
+        - city_longs: List of all airport long coordinates.
+
+    All city info lists have airports in the same order, i.e. airport city_names[i]
+    has latitude city_lats[i] and longitude city_longs[i].
 
     Returns:
         None. Saves visual as 'complete_network.png'.
