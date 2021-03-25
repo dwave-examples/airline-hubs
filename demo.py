@@ -221,6 +221,7 @@ def get_cost(ss, a, dist_mat, C, n):
         - a: Float in [0.0, 1.0]. Discount allowed for hub-hub legs.
         - dist_mat: Numpy matrix providing distance between cities i and j.
         - C: Numpy matrix. Represents airline leg cost.
+        - n: Int. Number of cities in play.
 
     Returns:
         - cost: Cost of provided route network.
@@ -299,7 +300,7 @@ if __name__ == '__main__':
     a = 0.4 # discount for hub-hub routes
 
     # Uncomment lines below to visualize total network options
-    # G = build_graph(W, city_names)
+    # G = build_graph(passenger_demand, city_names)
     # draw_graph(G, city_names, city_lats, city_longs)
 
     dqm = build_dqm(passenger_demand, leg_cost, num_cities, p, a)
