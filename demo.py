@@ -163,14 +163,14 @@ def build_dqm(W, C, n, p, a, verbose=True):
     for i in range(n):
         for j in range(n):
             for k in range(n):
-                dqm.set_linear_case(i, k, C[i][k]*W[i][j])
+                dqm.set_linear_case(i, k, dqm.get_linear_case(i,k)+C[i][k]*W[i][j])
                 dqm.set_linear_case(j, k, dqm.get_linear_case(j,k)+C[j][k]*W[i][j])     
                 for m in range(n):
                     if i != j:
                         dqm.set_quadratic_case(i, k, j, m, a*C[k][m]*W[i][j])
 
     # Constraint: Every leg must connect to a hub.
-    gamma1 = 30
+    gamma1 = 150
     for i in range(n):
         for j in range(n):
             dqm.set_linear_case(i,j, dqm.get_linear_case(i,j) + 1*gamma1)
@@ -178,7 +178,7 @@ def build_dqm(W, C, n, p, a, verbose=True):
                 dqm.set_quadratic_case(i, j, j, j, dqm.get_quadratic_case(i, j, j, j) - 1*gamma1)
 
     # Constraint: Exactly p hubs required.
-    gamma2 = 20
+    gamma2 = 75
     for j in range(n):
         dqm.set_linear_case(j, j, dqm.get_linear_case(j,j) + (1-2*p)*gamma2)
         for k in range(j+1,n):
@@ -284,7 +284,7 @@ def visualize_results(dist_mat, city_names, hubs, legs, city_lats, city_longs, c
     hub_graph = H.subgraph(hubs)
     nx.draw_networkx_labels(hub_graph, pos=positions, ax=ax)
 
-    filename = f'{counter}.png'
+    filename = str(counter)+'.png'
     filenames.append(filename)
 
     plt.savefig(filename)
@@ -327,7 +327,6 @@ if __name__ == '__main__':
     output_string = []
     for key, val in ordered_samples.items():
         hubs, legs, valid = get_layout_from_sample(ss[key].sample, city_names, p)
-        
         if counter > 0:
             if prev_val == val:
                 valid = False

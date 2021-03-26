@@ -34,7 +34,7 @@ class TestDemo(unittest.TestCase):
     def test_build_dqm(self):
         """Test that DQM built has correct number of variables"""
 
-        W, C, n = demo.read_inputs(flow_file='flow.csv', cost_file='cost.csv', verbose=False)
+        W, C, n = demo.read_inputs(flow_file='tests/test_flow.csv', cost_file='tests/test_cost.csv', verbose=False)
         p = 3 
         a = 0.4 
 
