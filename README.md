@@ -46,8 +46,7 @@ route map to be feasible.
  2. Only one hub per route.  
  3. Only p hubs total.
 
-The first two constraints ensure that any city-city route that a passenger
-travels has at most two legs, or one connection.
+The first two constraints ensure that any connecting airports are hubs.
 
 ## References
 
