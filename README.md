@@ -43,7 +43,7 @@ We have several additional constraints that must be satisfied in order for a
 route map to be feasible.
 
  1. Every leg must connect to a hub.  
- 2. Only one hub per route.  
+ 2. Passengers only connect at hub airports.  
  3. Only p hubs total.
 
 The first two constraints ensure that any connecting airports are hubs.
