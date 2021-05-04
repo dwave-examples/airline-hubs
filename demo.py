@@ -174,7 +174,7 @@ def build_dqm(W, C, n, p, a, verbose=True):
     for i in range(n):
         for j in range(n):
             if i != j:
-                dqm.set_linear_case(i,j, dqm.get_linear_case(i,j) + 1*gamma1)
+                dqm.set_linear_case(i, j, dqm.get_linear_case(i,j) + 1*gamma1)
                 dqm.set_quadratic_case(i, j, j, j, dqm.get_quadratic_case(i, j, j, j) - 1*gamma1)
 
     # Constraint: Exactly p hubs required.
