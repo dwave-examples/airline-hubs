@@ -15,6 +15,7 @@
 import os
 import itertools
 from collections import defaultdict
+import time
 
 import imageio
 import matplotlib
@@ -160,6 +161,7 @@ def build_dqm(W, C, n, p, a, verbose=True):
         dqm.add_variable(n, label=i)
 
     # Objective: Minimize cost.
+    st = time.time()
     for i in range(n):
         for j in range(n):
             for k in range(n):
@@ -168,6 +170,9 @@ def build_dqm(W, C, n, p, a, verbose=True):
                 for m in range(n):
                     if i != j:
                         dqm.set_quadratic_case(i, k, j, m, a*C[k][m]*W[i][j])
+
+    et = time.time()
+    print("Objective runtime:", et-st)
 
     # Constraint: Every leg must connect to a hub.
     gamma1 = 150

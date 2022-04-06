@@ -20,8 +20,10 @@ import imageio
 import matplotlib
 import numpy as np
 import networkx as nx
-from dimod import DiscreteQuadraticModel, CQM, Binary, quicksum, QuadraticModel
+from dimod import DiscreteQuadraticModel, CQM, Binary, quicksum, QuadraticModel, BinaryQuadraticModel
 from dwave.system import LeapHybridDQMSampler, LeapHybridCQMSampler
+
+import time
 
 try:
     import matplotlib.pyplot as plt
@@ -148,7 +150,7 @@ def build_cqm(W, C, n, p, a, verbose=True):
         - verbose: Print to command-line for user.
 
     Returns:
-        - dcqm: ConstrainedQuadraticModel representing the optimization problem.
+        - cqm: ConstrainedQuadraticModel representing the optimization problem.
     """
 
     if verbose:
@@ -158,25 +160,52 @@ def build_cqm(W, C, n, p, a, verbose=True):
     cqm = CQM()
 
     # Build the CQM starting by creating variables
+    print("Variables")
     vars = [[Binary(f'x_{i}_{j}') for j in range(n)] for i in range(n)]
+    x = np.asarray(vars).flatten()
 
-    # Objective: Minimize cost.
-    O_sum = np.sum(W, axis=0)
-    D_sum = np.sum(W, axis=1)
-    obj_lin = quicksum(vars[i][k]*C[i][k]*(O_sum[i]+D_sum[i]) for i in range(n) for k in range(n)) 
-    obj_quad = quicksum(vars[j][m]*vars[i][k]*a*W[i][j]*C[k][m] for j in range(n) for m in range(n) for i in range(n) for k in range(n))
-    cqm.set_objective(obj_lin+obj_quad)
+    # Objective: Minimize cost. min c'x+x'Qx
+    print("Objective")
+    st = time.time()
+    Q = a*np.kron(W,C)
+    M = np.sum(W, axis=0)+np.sum(W, axis=1)
+    c_prime = np.sum(((M*C.T).T).flatten().T*x)
+
+    obj_lin = c_prime
+    obj_quad = np.sum(np.matmul(np.matmul(x.T, Q), x))
+    cqm.set_objective(quicksum([obj_lin,obj_quad]))
+    et = time.time()
+    print("\tRuntime:", et-st)
+
+    obj = BinaryQuadraticModel(vartype='BINARY')
+    st = time.time()
+    for i in range(n):
+        for j in range(n):
+            for k in range(n):
+                obj.add_linear(f'x_{i}_{k}', C[i][k]*W[i][j])
+                obj.add_linear(f'x_{j}_{k}', C[j][k]*W[i][j])    
+                for m in range(n):
+                    if i != j:
+                        obj.add_quadratic(f'x_{i}_{k}', f'x_{j}_{m}', a*C[k][m]*W[i][j])
+
+    cqm.set_objective(obj)
+    et = time.time()
+    print("\tRuntime:", et-st)
+    # exit()
 
     # Add constraint to make variables discrete
+    print("Discrete")
     for v in range(len(vars)):
         cqm.add_discrete([f'x_{v}_{i}' for i in range(n)])
 
     # Constraint: Every leg must connect to a hub.
+    print("Legs")
     for i in range(n):
         for j in range(n):
             cqm.add_constraint(vars[j][j] - vars[i][j] >= 0)
 
     # Constraint: Exactly p hubs required.
+    print("Hubs")
     c2 = quicksum(vars[i][i] for i in range(n))
     cqm.add_constraint(c2 == p, label='num hubs')
 
@@ -304,14 +333,17 @@ if __name__ == '__main__':
     print("\nFeasible solutions found:")
     print("---------------------------\n")
     output_string = []
+    prev_val = -1
     for key, val in ordered_samples.items():
 
-        hubs, legs = get_layout_from_sample(sample_dict[key], city_names, p)
+        if val != prev_val:
 
-        filenames = visualize_results(passenger_demand, city_names, hubs, legs, city_lats, city_longs, cost_dict[key], filenames, counter, verbose=False)
-        output_string.append("Hubs: "+str(hubs)+"\tCost: "+str(cost_dict[key]))
-        counter += 1
-        prev_val = val
+            hubs, legs = get_layout_from_sample(sample_dict[key], city_names, p)
+
+            filenames = visualize_results(passenger_demand, city_names, hubs, legs, city_lats, city_longs, cost_dict[key], filenames, counter, verbose=False)
+            output_string.append("Hubs: "+str(hubs)+"\tCost: "+str(cost_dict[key]))
+            counter += 1
+            prev_val = val
 
     output_string.reverse()
     for line in output_string:
