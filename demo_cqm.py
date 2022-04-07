@@ -14,16 +14,13 @@
 
 import os
 import itertools
-from collections import defaultdict
 
 import imageio
 import matplotlib
 import numpy as np
 import networkx as nx
-from dimod import DiscreteQuadraticModel, CQM, Binary, quicksum, QuadraticModel, BinaryQuadraticModel
-from dwave.system import LeapHybridDQMSampler, LeapHybridCQMSampler
-
-import time
+from dimod import CQM, BinaryQuadraticModel
+from dwave.system import LeapHybridCQMSampler
 
 try:
     import matplotlib.pyplot as plt
@@ -159,54 +156,45 @@ def build_cqm(W, C, n, p, a, verbose=True):
     # Initialize the CQM object
     cqm = CQM()
 
-    # Build the CQM starting by creating variables
-    print("Variables")
-    vars = [[Binary(f'x_{i}_{j}') for j in range(n)] for i in range(n)]
-    x = np.asarray(vars).flatten()
-
     # Objective: Minimize cost. min c'x+x'Qx
-    print("Objective")
-    st = time.time()
-    Q = a*np.kron(W,C)
+    # See reference paper for full explanation.
     M = np.sum(W, axis=0)+np.sum(W, axis=1)
-    c_prime = np.sum(((M*C.T).T).flatten().T*x)
+    Q = a*np.kron(W,C)
 
-    obj_lin = c_prime
-    obj_quad = np.sum(np.matmul(np.matmul(x.T, Q), x))
-    cqm.set_objective(quicksum([obj_lin,obj_quad]))
-    et = time.time()
-    print("\tRuntime:", et-st)
+    linear = ((M*C.T).T).flatten()
 
-    obj = BinaryQuadraticModel(vartype='BINARY')
-    st = time.time()
-    for i in range(n):
-        for j in range(n):
-            for k in range(n):
-                obj.add_linear(f'x_{i}_{k}', C[i][k]*W[i][j])
-                obj.add_linear(f'x_{j}_{k}', C[j][k]*W[i][j])    
-                for m in range(n):
-                    if i != j:
-                        obj.add_quadratic(f'x_{i}_{k}', f'x_{j}_{m}', a*C[k][m]*W[i][j])
+    quadratic = np.triu(Q, k=1).flatten()
+    quad_col = np.tile(np.arange(n**2), n**2)
+    quad_row = np.tile(np.arange(n**2), 
+                (n**2,1)).flatten('F')
+    q2 = quad_col[quadratic != 0]
+    q1 = quad_row[quadratic != 0]
+    q3 = quadratic[quadratic != 0]
+    
+    obj = BinaryQuadraticModel.from_numpy_vectors(linear=linear, 
+                                                            quadratic=(q1, q2, q3), 
+                                                            offset=0, 
+                                                            vartype='BINARY')
 
     cqm.set_objective(obj)
-    et = time.time()
-    print("\tRuntime:", et-st)
-    # exit()
 
     # Add constraint to make variables discrete
-    print("Discrete")
-    for v in range(len(vars)):
-        cqm.add_discrete([f'x_{v}_{i}' for i in range(n)])
+    for v in range(n):
+        cqm.add_discrete([n*v+i for i in range(n)])
 
-    # Constraint: Every leg must connect to a hub.
-    print("Legs")
+    # Constraint: Every leg must connect to a hub. 
     for i in range(n):
         for j in range(n):
-            cqm.add_constraint(vars[j][j] - vars[i][j] >= 0)
+            if i != j:
+                c1 = BinaryQuadraticModel('BINARY')
+                c1.add_linear(i*n+j, 1)
+                c1.add_quadratic(i*n+j, j*n+j, -1)
+                cqm.add_constraint(c1 == 0)
 
     # Constraint: Exactly p hubs required.
-    print("Hubs")
-    c2 = quicksum(vars[i][i] for i in range(n))
+    linear_terms = {i*n+i: 1.0 for i in range(n)}
+    c2 = BinaryQuadraticModel('BINARY')
+    c2.add_linear_from(linear_terms)
     cqm.add_constraint(c2 == p, label='num hubs')
 
     return cqm
@@ -322,9 +310,8 @@ if __name__ == '__main__':
         sample = ss[index].sample
         for i in range(num_cities):
             for j in range(num_cities):
-                if sample[f'x_{i}_{j}'] == 1.0:
+                if sample[i*num_cities+j] == 1.0:
                     sample_dict[index][i] = j
-
 
     ordered_samples = dict(sorted(cost_dict.items(), key=lambda item: item[1], reverse=True))
     filenames = []

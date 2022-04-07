@@ -6,15 +6,19 @@
 
 A challenging optimization problem in the airline industry is determining which
 airports should be hub locations for an airline. In this demo, we show how to
-formulate this problem as a discrete quadratic model and use a hybrid solver to
-optimize and find feasible solutions.
+formulate this problem as either a discrete or constrained quadratic model and
+use a hybrid solver to optimize and find feasible solutions.
 
 The goal for this problem is to minimize costs for the airline, while providing
 transportation for all city pairs in demand by passengers.
 
 ## Running the Demo
 
-To run the demo, type
+To run the CQM demo, type
+
+`python demo_cqm.py`
+
+To run the DQM demo, type
 
 `python demo.py`
 
@@ -44,7 +48,8 @@ route map to be feasible.
 
  1. Every leg must connect to a hub.  
  2. Passengers only connect at hub airports.  
- 3. Only p hubs total.
+ 3. Each airport gets assigned exactly one hub.
+ 4. Only p hubs total.
 
 The first two constraints ensure that any connecting airports are hubs.
 

@@ -14,8 +14,6 @@
 
 import os
 import itertools
-from collections import defaultdict
-import time
 
 import imageio
 import matplotlib
@@ -161,7 +159,6 @@ def build_dqm(W, C, n, p, a, verbose=True):
         dqm.add_variable(n, label=i)
 
     # Objective: Minimize cost.
-    st = time.time()
     for i in range(n):
         for j in range(n):
             for k in range(n):
@@ -170,9 +167,6 @@ def build_dqm(W, C, n, p, a, verbose=True):
                 for m in range(n):
                     if i != j:
                         dqm.set_quadratic_case(i, k, j, m, a*C[k][m]*W[i][j])
-
-    et = time.time()
-    print("Objective runtime:", et-st)
 
     # Constraint: Every leg must connect to a hub.
     gamma1 = 150
@@ -221,32 +215,36 @@ def get_layout_from_sample(ss, city_names, p):
 
     return hubs, legs, valid
 
-def get_cost(ss, a, dist_mat, C, n):
+def get_cost(ss, a, W, C, n):
     """Determines the cost of an airline route network from a sampleset.
 
     Args:
         - ss: Sampleset dictionary. One solution returned from the hybrid solver.
         - a: Float in [0.0, 1.0]. Discount allowed for hub-hub legs.
-        - dist_mat: Numpy matrix providing distance between cities i and j.
+        - W: Numpy matrix. Represents passenger demand. Normalized with total demand equal to 1.
         - C: Numpy matrix. Represents airline leg cost.
         - n: Int. Number of cities in play.
 
     Returns:
         - cost: Cost of provided route network.
     """
+    
+    M = np.sum(W, axis=0)+np.sum(W, axis=1)
+    Q = np.triu(a*np.kron(W,C), k=1)
+    c_prime = ((M*C.T).T).flatten()
 
-    cost = 0
+    x = np.zeros((n**2,1))
     for i in range(n):
-        for j in range(i+1, n):
-            cost += dist_mat[i][j]*(C[i][ss[i]] + C[j][ss[j]] + a*C[ss[i]][ss[j]])
+        x[i*n+ss[i],0] = 1
 
-    return cost
+    cost = np.matmul(c_prime,x)+np.matmul(np.matmul(x.T,Q), x)
 
-def visualize_results(dist_mat, city_names, hubs, legs, city_lats, city_longs, cost, filenames=None, counter=0, verbose=True):
+    return cost[0,0]
+
+def visualize_results(city_names, hubs, legs, city_lats, city_longs, cost, filenames=None, counter=0, verbose=True):
     """Visualizes a given route layout and saves the file as a .png.
 
     Args:
-        - dist_mat: Numpy matrix providing distance between cities i and j.
         - city_names: List of all airport codes.
         - hubs: List of airports designated as hubs.
         - legs: List of airline city-city route legs that will be operated.
@@ -336,7 +334,7 @@ if __name__ == '__main__':
             if prev_val == val:
                 valid = False
         if valid:
-            filenames = visualize_results(passenger_demand, city_names, hubs, legs, city_lats, city_longs, cost_dict[key], filenames, counter, verbose=False)
+            filenames = visualize_results(city_names, hubs, legs, city_lats, city_longs, cost_dict[key], filenames, counter, verbose=False)
             output_string.append("Hubs: "+str(hubs)+"\tCost: "+str(cost_dict[key]))
             counter += 1
         prev_val = val

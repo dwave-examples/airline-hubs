@@ -17,16 +17,17 @@ import subprocess
 import sys
 import unittest
 
-from dwave.system import LeapHybridDQMSampler
+from dwave.system import LeapHybridDQMSampler, LeapHybridCQMSampler
 
 import demo
+import demo_cqm
 
 project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 class TestDemo(unittest.TestCase):
 
     def test_smoke(self):
-        """run demo-dqm.py and check that nothing crashes"""
+        """run demo.py and check that nothing crashes"""
 
         demo_file = os.path.join(project_dir, 'demo.py')
         subprocess.check_output([sys.executable, demo_file])
@@ -72,6 +73,25 @@ class TestDemo(unittest.TestCase):
                     self.assertGreater(len(overlap), 0)
 
         self.assertTrue(found_valid_soln)
+
+class TestCQMDemo(unittest.TestCase):
+
+    def test_smoke(self):
+        """run demo_cqm.py and check that nothing crashes"""
+
+        demo_file = os.path.join(project_dir, 'demo_cqm.py')
+        subprocess.check_output([sys.executable, demo_file])
+
+    def test_build_cqm(self):
+        """Test that CQM built has correct number of variables"""
+
+        W, C, n = demo_cqm.read_inputs(flow_file='tests/test_flow.csv', cost_file='tests/test_cost.csv', verbose=False)
+        p = 3 
+        a = 0.4 
+
+        cqm = demo_cqm.build_cqm(W, C, n, p, a, verbose=False)
+
+        self.assertEqual(len(cqm.variables), n**2)
 
 if __name__ == '__main__':
     unittest.main()
