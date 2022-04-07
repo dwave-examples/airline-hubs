@@ -163,13 +163,10 @@ def build_cqm(W, C, n, p, a, verbose=True):
 
     linear = ((M*C.T).T).flatten()
 
-    quadratic = np.triu(Q, k=1).flatten()
-    quad_col = np.tile(np.arange(n**2), n**2)
-    quad_row = np.tile(np.arange(n**2), 
+    q1 = np.tile(np.arange(n**2), 
                 (n**2,1)).flatten('F')
-    q2 = quad_col[quadratic != 0]
-    q1 = quad_row[quadratic != 0]
-    q3 = quadratic[quadratic != 0]
+    q2 = np.tile(np.arange(n**2), n**2)
+    q3 = Q.flatten()
     
     obj = BinaryQuadraticModel.from_numpy_vectors(linear=linear, 
                                                             quadratic=(q1, q2, q3), 

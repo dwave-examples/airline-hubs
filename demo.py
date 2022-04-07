@@ -230,7 +230,7 @@ def get_cost(ss, a, W, C, n):
     """
     
     M = np.sum(W, axis=0)+np.sum(W, axis=1)
-    Q = np.triu(a*np.kron(W,C), k=1)
+    Q = a*np.kron(W,C)
     c_prime = ((M*C.T).T).flatten()
 
     x = np.zeros((n**2,1))
