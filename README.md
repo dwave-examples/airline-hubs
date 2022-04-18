@@ -57,8 +57,9 @@ The first two constraints ensure that any connecting airports are hubs.
 
 For a list of `n` cities, we define `n^2` binary variables. A binary variable
 `(i,j)` is equal to 1 if city `i` is assigned to a hub at city `j`, and is
-equal to 0 otherwise. In parictular, we assign `(i,i) = 1` if and only if city
-`i` is a hub.
+equal to 0 otherwise. In the real-world scenario, this translates to a flight
+route / leg from city `i` to city `j`. In parictular, we assign `(i,i) = 1` if
+and only if city `i` is a hub.
 
 With these variables, we can build the quadratic model for the problem. Our
 constraints translate to the following expressions in terms of the binary
