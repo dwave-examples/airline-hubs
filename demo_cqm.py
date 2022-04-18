@@ -19,7 +19,7 @@ import imageio
 import matplotlib
 import numpy as np
 import networkx as nx
-from dimod import CQM, BinaryQuadraticModel
+from dimod import ConstrainedQuadraticModel, BinaryQuadraticModel
 from dwave.system import LeapHybridCQMSampler
 
 try:
@@ -154,7 +154,7 @@ def build_cqm(W, C, n, p, a, verbose=True):
         print("\nBuilding CQM...\n")
 
     # Initialize the CQM object
-    cqm = CQM()
+    cqm = ConstrainedQuadraticModel()
 
     # Objective: Minimize cost. min c'x+x'Qx
     # See reference paper for full explanation.
@@ -167,29 +167,31 @@ def build_cqm(W, C, n, p, a, verbose=True):
                 (n**2,1)).flatten('F')
     q2 = np.tile(np.arange(n**2), n**2)
     q3 = Q.flatten()
+    var_order = [(i,j) for i in range(n) for j in range(n)]
     
     obj = BinaryQuadraticModel.from_numpy_vectors(linear=linear, 
                                                             quadratic=(q1, q2, q3), 
                                                             offset=0, 
+                                                            variable_order = var_order,
                                                             vartype='BINARY')
 
     cqm.set_objective(obj)
 
     # Add constraint to make variables discrete
     for v in range(n):
-        cqm.add_discrete([n*v+i for i in range(n)])
+        cqm.add_discrete([(v,i) for i in range(n)])
 
     # Constraint: Every leg must connect to a hub. 
     for i in range(n):
         for j in range(n):
             if i != j:
                 c1 = BinaryQuadraticModel('BINARY')
-                c1.add_linear(i*n+j, 1)
-                c1.add_quadratic(i*n+j, j*n+j, -1)
+                c1.add_linear((i,j), 1)
+                c1.add_quadratic((i,j), (j,j), -1)
                 cqm.add_constraint(c1 == 0)
 
     # Constraint: Exactly p hubs required.
-    linear_terms = {i*n+i: 1.0 for i in range(n)}
+    linear_terms = {(i,i): 1.0 for i in range(n)}
     c2 = BinaryQuadraticModel('BINARY')
     c2.add_linear_from(linear_terms)
     cqm.add_constraint(c2 == p, label='num hubs')
@@ -307,7 +309,7 @@ if __name__ == '__main__':
         sample = ss[index].sample
         for i in range(num_cities):
             for j in range(num_cities):
-                if sample[i*num_cities+j] == 1.0:
+                if sample[(i,j)] == 1.0:
                     sample_dict[index][i] = j
 
     ordered_samples = dict(sorted(cost_dict.items(), key=lambda item: item[1], reverse=True))

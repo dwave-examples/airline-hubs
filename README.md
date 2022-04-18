@@ -53,6 +53,25 @@ route map to be feasible.
 
 The first two constraints ensure that any connecting airports are hubs.
 
+## Building the Model
+
+For a list of `n` cities, we define `n^2` binary variables. A binary variable
+`(i,j)` is equal to 1 if city `i` is assigned to a hub at city `j`, and is
+equal to 0 otherwise. In parictular, we assign `(i,i) = 1` if and only if city
+`i` is a hub.
+
+With these variables, we can build the quadratic model for the problem. Our
+constraints translate to the following expressions in terms of the binary
+variables defined.
+
+ 1. If `(i,j) = 1` and `i != j`, then `(j,j) = 1`. In other words, if city `i`
+ connects to city `j`, then city `j` must be a hub.
+ 2. For each city `i`, exactly one city `j` exists with `(i,j) = 1`.
+ 3. Exactly `p` cities `i` exist with `(i,i) = 1`.
+
+Formulating the objective with these binary variables is a bit more complex,
+and the interested reader is referred to the paper referenced below.
+
 ## References
 
 O'Kelly, Morton E. "A quadratic integer program for the location of interacting
