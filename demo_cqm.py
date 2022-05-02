@@ -221,11 +221,10 @@ def get_layout_from_sample(ss, city_names, p):
 
     return hubs, legs
 
-def visualize_results(dist_mat, city_names, hubs, legs, city_lats, city_longs, cost, filenames=None, counter=0, verbose=True):
+def visualize_results(city_names, hubs, legs, city_lats, city_longs, cost, filenames=None, counter=0, verbose=True):
     """Visualizes a given route layout and saves the file as a .png.
 
     Args:
-        - dist_mat: Numpy matrix providing distance between cities i and j.
         - city_names: List of all airport codes.
         - hubs: List of airports designated as hubs.
         - legs: List of airline city-city route legs that will be operated.
@@ -326,7 +325,7 @@ if __name__ == '__main__':
 
             hubs, legs = get_layout_from_sample(sample_dict[key], city_names, p)
 
-            filenames = visualize_results(passenger_demand, city_names, hubs, legs, city_lats, city_longs, cost_dict[key], filenames, counter, verbose=False)
+            filenames = visualize_results(city_names, hubs, legs, city_lats, city_longs, cost_dict[key], filenames, counter, verbose=False)
             output_string.append("Hubs: "+str(hubs)+"\tCost: "+str(cost_dict[key]))
             counter += 1
             prev_val = val
