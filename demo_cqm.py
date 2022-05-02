@@ -301,7 +301,7 @@ if __name__ == '__main__':
 
     ss = list(sampleset.data(['sample']))
 
-    cost_dict = {index: cqm.objective.energy(ss[index]) for index in range(len(ss))}
+    cost_dict = {index: cqm.objective.energy(ss[index].sample) for index in range(len(ss))}
 
     sample_dict = {}
     for index in range(len(ss)):
