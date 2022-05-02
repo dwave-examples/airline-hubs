@@ -163,17 +163,9 @@ def build_cqm(W, C, n, p, a, verbose=True):
 
     linear = ((M*C.T).T).flatten()
 
-    q1 = np.tile(np.arange(n**2), 
-                (n**2,1)).flatten('F')
-    q2 = np.tile(np.arange(n**2), n**2)
-    q3 = Q.flatten()
-    var_order = [(i,j) for i in range(n) for j in range(n)]
-    
-    obj = BinaryQuadraticModel.from_numpy_vectors(linear=linear, 
-                                                            quadratic=(q1, q2, q3), 
-                                                            offset=0, 
-                                                            variable_order = var_order,
-                                                            vartype='BINARY')
+    obj = BinaryQuadraticModel(linear, Q, 'BINARY')
+    obj.relabel_variables({idx: (i,j) for idx, (i,j) in
+                           enumerate((i,j) for i in range(n) for j in range(n))})
 
     cqm.set_objective(obj)
 
