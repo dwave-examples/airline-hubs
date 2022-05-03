@@ -6,20 +6,15 @@
 
 A challenging optimization problem in the airline industry is determining which
 airports should be hub locations for an airline. In this demo, we show how to
-formulate this problem as either a Discrete Quadratic Model (DQM) or Constrained
-Quadratic Model (CQM) and use a hybrid solver to optimize and find feasible
-solutions.
+formulate this problem as a Constrained Quadratic Model (CQM) and use a hybrid
+solver to optimize and find feasible solutions.
 
 The goal for this problem is to minimize costs for the airline, while providing
 transportation for all city pairs in demand by passengers.
 
 ## Running the Demo
 
-To run the CQM demo, type
-
-`python demo_cqm.py`
-
-To run the DQM demo, type
+To run the demo, type
 
 `python demo.py`
 

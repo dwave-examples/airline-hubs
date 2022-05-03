@@ -19,8 +19,8 @@ import imageio
 import matplotlib
 import numpy as np
 import networkx as nx
-from dimod import DiscreteQuadraticModel
-from dwave.system import LeapHybridDQMSampler
+from dimod import ConstrainedQuadraticModel, BinaryQuadraticModel
+from dwave.system import LeapHybridCQMSampler
 
 try:
     import matplotlib.pyplot as plt
@@ -135,8 +135,8 @@ def draw_graph(G, city_names, city_lats, city_longs):
     plt.savefig('complete_network.png')
     plt.close()
 
-def build_dqm(W, C, n, p, a, verbose=True):
-    """Builds discrete quadratic model representing the optimization problem.
+def build_cqm(W, C, n, p, a, verbose=True):
+    """Builds constrained quadratic model representing the optimization problem.
 
     Args:
         - W: Numpy matrix. Represents passenger demand. Normalized with total demand equal to 1.
@@ -147,43 +147,48 @@ def build_dqm(W, C, n, p, a, verbose=True):
         - verbose: Print to command-line for user.
 
     Returns:
-        - dqm: DiscreteQuadraticModel representing the optimization problem.
+        - cqm: ConstrainedQuadraticModel representing the optimization problem.
     """
 
     if verbose:
-        print("\nBuilding DQM...\n")
+        print("\nBuilding CQM...\n")
 
-    # Initialize DQM object.
-    dqm = DiscreteQuadraticModel()
-    for i in range(n):
-        dqm.add_variable(n, label=i)
+    # Initialize the CQM object
+    cqm = ConstrainedQuadraticModel()
 
-    # Objective: Minimize cost.
-    for i in range(n):
-        for j in range(n):
-            for k in range(n):
-                dqm.set_linear_case(i, k, dqm.get_linear_case(i,k)+C[i][k]*W[i][j])
-                dqm.set_linear_case(j, k, dqm.get_linear_case(j,k)+C[j][k]*W[i][j])     
-                for m in range(n):
-                    if i != j:
-                        dqm.set_quadratic_case(i, k, j, m, a*C[k][m]*W[i][j])
+    # Objective: Minimize cost. min c'x+x'Qx
+    # See reference paper for full explanation.
+    M = np.sum(W, axis=0)+np.sum(W, axis=1)
+    Q = a*np.kron(W,C)
 
-    # Constraint: Every leg must connect to a hub.
-    gamma1 = 150
+    linear = ((M*C.T).T).flatten()
+
+    obj = BinaryQuadraticModel(linear, Q, 'BINARY')
+    obj.relabel_variables({idx: (i,j) for idx, (i,j) in
+                           enumerate((i,j) for i in range(n) for j in range(n))})
+
+    cqm.set_objective(obj)
+
+    # Add constraint to make variables discrete
+    for v in range(n):
+        cqm.add_discrete([(v,i) for i in range(n)])
+
+    # Constraint: Every leg must connect to a hub. 
     for i in range(n):
         for j in range(n):
             if i != j:
-                dqm.set_linear_case(i, j, dqm.get_linear_case(i,j) + 1*gamma1)
-                dqm.set_quadratic_case(i, j, j, j, dqm.get_quadratic_case(i, j, j, j) - 1*gamma1)
+                c1 = BinaryQuadraticModel('BINARY')
+                c1.add_linear((i,j), 1)
+                c1.add_quadratic((i,j), (j,j), -1)
+                cqm.add_constraint(c1 == 0)
 
     # Constraint: Exactly p hubs required.
-    gamma2 = 250
-    for i in range(n):
-        dqm.set_linear_case(i, i, dqm.get_linear_case(i,i) + (1-2*p)*gamma2)
-        for j in range(i+1,n):
-            dqm.set_quadratic_case(i, i, j, j, dqm.get_quadratic_case(i, i, j, j) + 2*gamma2)
+    linear_terms = {(i,i): 1.0 for i in range(n)}
+    c2 = BinaryQuadraticModel('BINARY')
+    c2.add_linear_from(linear_terms)
+    cqm.add_constraint(c2 == p, label='num hubs')
 
-    return dqm
+    return cqm
 
 def get_layout_from_sample(ss, city_names, p):
     """Determines the airline route network from a sampleset.
@@ -196,50 +201,17 @@ def get_layout_from_sample(ss, city_names, p):
     Returns:
         - hubs: List of airports designated as hubs.
         - legs: List of airline city-city route legs that will be operated.
-        - valid: Boolean designated whether provided solution satisfies the constraints.
     """
 
     hubs = []
     legs = []
-    valid = True
     for key, val in ss.items():
         if key == val:
             hubs.append(city_names[key])
         else:
             legs.append((city_names[key],city_names[val]))
-            if ss[val] != val:
-                valid = False
 
-    if len(hubs) != p:
-        valid = False
-
-    return hubs, legs, valid
-
-def get_cost(ss, a, W, C, n):
-    """Determines the cost of an airline route network from a sampleset.
-
-    Args:
-        - ss: Sampleset dictionary. One solution returned from the hybrid solver.
-        - a: Float in [0.0, 1.0]. Discount allowed for hub-hub legs.
-        - W: Numpy matrix. Represents passenger demand. Normalized with total demand equal to 1.
-        - C: Numpy matrix. Represents airline leg cost.
-        - n: Int. Number of cities in play.
-
-    Returns:
-        - cost: Cost of provided route network.
-    """
-    
-    M = np.sum(W, axis=0)+np.sum(W, axis=1)
-    Q = a*np.kron(W,C)
-    c_prime = ((M*C.T).T).flatten()
-
-    x = np.zeros((n**2,1))
-    for i in range(n):
-        x[i*n+ss[i],0] = 1
-
-    cost = np.matmul(c_prime,x)+np.matmul(np.matmul(x.T,Q), x)
-
-    return cost[0,0]
+    return hubs, legs
 
 def visualize_results(city_names, hubs, legs, city_lats, city_longs, cost, filenames=None, counter=0, verbose=True):
     """Visualizes a given route layout and saves the file as a .png.
@@ -309,17 +281,27 @@ if __name__ == '__main__':
     # G = build_graph(passenger_demand, city_names)
     # draw_graph(G, city_names, city_lats, city_longs)
 
-    dqm = build_dqm(passenger_demand, leg_cost, num_cities, p, a)
+    cqm = build_cqm(passenger_demand, leg_cost, num_cities, p, a)
 
     print("\nRunning hybrid solver...\n")
-    sampler = LeapHybridDQMSampler()
-    sampleset = sampler.sample_dqm(dqm, label='Example - DQM Airline Hubs')
+    sampler = LeapHybridCQMSampler()
+    sampleset = sampler.sample_cqm(cqm, label='Example - CQM Airline Hubs')
+    sampleset = sampleset.filter(lambda d: d.is_feasible)
 
     print("\nInterpreting solutions...\n")
 
     ss = list(sampleset.data(['sample']))
 
-    cost_dict = {index: get_cost(ss[index].sample, a, passenger_demand, leg_cost, num_cities) for index in range(len(ss))}
+    cost_dict = {index: cqm.objective.energy(ss[index].sample) for index in range(len(ss))}
+
+    sample_dict = {}
+    for index in range(len(ss)):
+        sample_dict[index] = {}
+        sample = ss[index].sample
+        for i in range(num_cities):
+            for j in range(num_cities):
+                if sample[(i,j)] == 1.0:
+                    sample_dict[index][i] = j
 
     ordered_samples = dict(sorted(cost_dict.items(), key=lambda item: item[1], reverse=True))
     filenames = []
@@ -328,16 +310,17 @@ if __name__ == '__main__':
     print("\nFeasible solutions found:")
     print("---------------------------\n")
     output_string = []
+    prev_val = -1
     for key, val in ordered_samples.items():
-        hubs, legs, valid = get_layout_from_sample(ss[key].sample, city_names, p)
-        if counter > 0:
-            if prev_val == val:
-                valid = False
-        if valid:
+
+        if val != prev_val:
+
+            hubs, legs = get_layout_from_sample(sample_dict[key], city_names, p)
+
             filenames = visualize_results(city_names, hubs, legs, city_lats, city_longs, cost_dict[key], filenames, counter, verbose=False)
             output_string.append("Hubs: "+str(hubs)+"\tCost: "+str(cost_dict[key]))
             counter += 1
-        prev_val = val
+            prev_val = val
 
     output_string.reverse()
     for line in output_string:
