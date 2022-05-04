@@ -297,7 +297,6 @@ if __name__ == '__main__':
     print("\nGenerating images for output GIF...\n")
     print("\nFeasible solutions found:")
     print("---------------------------\n")
-    output_string = []
 
     for count, (sample, assignment) in enumerate(zip(sampleset.data(), assignments)):
         hubs, legs = get_layout_from_sample(assignment, city_names, p)
@@ -308,7 +307,7 @@ if __name__ == '__main__':
 
     # build gif
     print("\nSaving best solution to best_soln_found.png...")
-    img = plt.imread(filenames[-1])
+    img = plt.imread(filenames[0])
     fig = plt.figure(dpi=100, tight_layout=True, frameon=False, figsize=(img.shape[1]/100.,img.shape[0]/100.)) 
     fig.figimage(img, cmap=plt.cm.binary)
     fig.suptitle('Best Solution Found', x=0.5, y=0.08, fontsize=16)
