@@ -286,48 +286,28 @@ if __name__ == '__main__':
     print("\nRunning hybrid solver...\n")
     sampler = LeapHybridCQMSampler()
     sampleset = sampler.sample_cqm(cqm, label='Example - CQM Airline Hubs')
-    sampleset = sampleset.filter(lambda d: d.is_feasible)
+    sampleset = sampleset.filter(lambda d: d.is_feasible).aggregate()
 
     print("\nInterpreting solutions...\n")
 
-    ss = list(sampleset.data(['sample']))
+    assignments = [{i: j for i in range(num_cities) for j in range(num_cities) 
+                    if sample.sample[i,j] == 1} for sample in sampleset.data()]
 
-    cost_dict = {index: cqm.objective.energy(ss[index].sample) for index in range(len(ss))}
-
-    sample_dict = {}
-    for index in range(len(ss)):
-        sample_dict[index] = {}
-        sample = ss[index].sample
-        for i in range(num_cities):
-            for j in range(num_cities):
-                if sample[(i,j)] == 1.0:
-                    sample_dict[index][i] = j
-
-    ordered_samples = dict(sorted(cost_dict.items(), key=lambda item: item[1], reverse=True))
     filenames = []
-    counter = 0
     print("\nGenerating images for output GIF...\n")
     print("\nFeasible solutions found:")
     print("---------------------------\n")
     output_string = []
-    prev_val = -1
-    for key, val in ordered_samples.items():
 
-        if val != prev_val:
+    for count, (sample, assignment) in enumerate(zip(sampleset.data(), assignments)):
+        hubs, legs = get_layout_from_sample(assignment, city_names, p)
 
-            hubs, legs = get_layout_from_sample(sample_dict[key], city_names, p)
-
-            filenames = visualize_results(city_names, hubs, legs, city_lats, city_longs, cost_dict[key], filenames, counter, verbose=False)
-            output_string.append("Hubs: "+str(hubs)+"\tCost: "+str(cost_dict[key]))
-            counter += 1
-            prev_val = val
-
-    output_string.reverse()
-    for line in output_string:
-        print(line)
+        filenames = visualize_results(city_names, hubs, legs, city_lats, city_longs, 
+                                        sample.energy, filenames, count, verbose=False)
+        print(f'Hubs: {hubs}\tCost: {sample.energy}')
 
     # build gif
-    print("\nSaving best solution to best_soln_found.png...\n")
+    print("\nSaving best solution to best_soln_found.png...")
     img = plt.imread(filenames[-1])
     fig = plt.figure(dpi=100, tight_layout=True, frameon=False, figsize=(img.shape[1]/100.,img.shape[0]/100.)) 
     fig.figimage(img, cmap=plt.cm.binary)
@@ -337,7 +317,7 @@ if __name__ == '__main__':
     
     print("\nBuilding output GIF (airline-hubs.gif)...\n")
     with imageio.get_writer('airline-hubs.gif', mode='I') as writer:
-        for filename in filenames:
+        for filename in reversed(filenames):
             for i in range(15):
                 image = imageio.imread(filename)
                 writer.append_data(image)
