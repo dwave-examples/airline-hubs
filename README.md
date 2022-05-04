@@ -6,8 +6,8 @@
 
 A challenging optimization problem in the airline industry is determining which
 airports should be hub locations for an airline. In this demo, we show how to
-formulate this problem as a discrete quadratic model and use a hybrid solver to
-optimize and find feasible solutions.
+formulate this problem as a Constrained Quadratic Model (CQM) and use a hybrid
+solver to optimize and find feasible solutions.
 
 The goal for this problem is to minimize costs for the airline, while providing
 transportation for all city pairs in demand by passengers.
@@ -44,9 +44,30 @@ route map to be feasible.
 
  1. Every leg must connect to a hub.  
  2. Passengers only connect at hub airports.  
- 3. Only p hubs total.
+ 3. Each airport gets assigned exactly one hub.
+ 4. Only p hubs total.
 
 The first two constraints ensure that any connecting airports are hubs.
+
+## Building the Model
+
+For a list of `n` cities, we define `n^2` binary variables. A binary variable
+`(i,j)` is equal to 1 if city `i` is assigned to a hub at city `j`, and is
+equal to 0 otherwise. In the real-world scenario, this translates to a flight
+route / leg from city `i` to city `j`. In particular, we assign `(i,i) = 1` if
+and only if city `i` is a hub.
+
+With these variables, we can build the quadratic model for the problem. Our
+constraints translate to the following expressions in terms of the binary
+variables defined.
+
+ 1. If `(i,j) = 1` and `i != j`, then `(j,j) = 1`. In other words, if city `i`
+ connects to city `j`, then city `j` must be a hub.
+ 2. For each city `i`, exactly one city `j` exists with `(i,j) = 1`.
+ 3. Exactly `p` cities `i` exist with `(i,i) = 1`.
+
+Formulating the objective with these binary variables is a bit more complex,
+and the interested reader is referred to the paper referenced below.
 
 ## References
 
