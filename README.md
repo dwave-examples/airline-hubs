@@ -1,5 +1,8 @@
+[![Open in Leap IDE](
+  https://cdn-assets.cloud.dwavesys.com/shared/latest/badges/leapide.svg)](
+  https://ide.dwavesys.io/#https://github.com/dwave-examples/airline-hubs)
 [![Linux/Mac/Windows build status](
-  https://circleci.com/gh/dwave-examples/airline-hubs.svg?style=svg)](
+  https://circleci.com/gh/dwave-examples/airline-hubs.svg?style=shield)](
   https://circleci.com/gh/dwave-examples/airline-hubs)
 
 # Airline Hub Locations
