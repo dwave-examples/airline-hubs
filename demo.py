@@ -15,7 +15,7 @@
 import os
 import itertools
 
-import imageio
+import imageio.v2 as imageio
 import matplotlib
 import numpy as np
 import networkx as nx
